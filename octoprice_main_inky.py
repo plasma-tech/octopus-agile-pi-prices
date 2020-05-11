@@ -19,6 +19,18 @@ conn = sqlite3.connect('octoprice.sqlite')
 cur = conn.cursor()
 import datetime
 
+#basic DST functionality added by octonaut
+#test code
+import time
+if time.localtime().tm_isdst==1: #if the local time of your raspberry pi in in DST
+	dst_offset=-60 # 60 minute offset for DST
+else: dst_offset=0 # otherwise no offset
+
+#test code to round down to nearest interval
+def floor_dt(dt, interval):
+    replace = (dt.minute // interval)*interval
+    return dt.replace(minute = replace, second=0, microsecond=0)
+
 ##  -- Display type = red. Change below if you have the yellow
 inky_display = InkyPHAT("red")
 ## --   ----------------------------------------------------
@@ -28,7 +40,7 @@ img = Image.new("P", (inky_display.WIDTH, inky_display.HEIGHT))
 draw = ImageDraw.Draw(img)
 
 # find current time and convert to year month day etc
-the_now = datetime.datetime.now()
+the_now = datetime.datetime.now()+datetime.timedelta(minutes=dst_offset) #dst offset added
 the_year = the_now.year
 the_month = the_now.month
 the_hour = the_now.hour
@@ -55,7 +67,7 @@ current_price = row[5] # literally this is hardcoded tuple. DONT ADD ANY EXTRA F
 
 # Find Next Price
 # find current time and convert to year month day etc
-the_now = datetime.datetime.now()
+#the_now = datetime.datetime.now()
 now_plus_10 = the_now + datetime.timedelta(minutes = 30)
 the_year = now_plus_10.year
 the_month = now_plus_10.month
@@ -85,7 +97,7 @@ next_price = row[5] # literally this is peak tuple. DONT ADD ANY EXTRA FIELDS TO
 
 # Find Next+1 Price
 # find current time and convert to year month day etc
-the_now = datetime.datetime.now()
+#the_now = datetime.datetime.now()
 now_plus_10 = the_now + datetime.timedelta(minutes = 60)
 the_year = now_plus_10.year
 the_month = now_plus_10.month
@@ -96,7 +108,7 @@ if now_plus_10.minute < 30:
 else:
 	the_segment = 1
 
-print ('segment:')
+print ('segment+2:')
 print (the_segment)
 
 # select from db where record = ^
@@ -117,7 +129,7 @@ nextp1_price = row[5] # literally this is peak tuple. DONT ADD ANY EXTRA FIELDS 
 
 # Find Next+2 Price
 # find current time and convert to year month day etc
-the_now = datetime.datetime.now()
+#the_now = datetime.datetime.now()
 now_plus_10 = the_now + datetime.timedelta(minutes = 90)
 the_year = now_plus_10.year
 the_month = now_plus_10.month
@@ -128,7 +140,7 @@ if now_plus_10.minute < 30:
 else:
 	the_segment = 1
 
-print ('segment:')
+print ('segment+3:')
 print (the_segment)
 
 # select from db where record == the above
@@ -142,11 +154,12 @@ nextp2_price = row[5] # literally this is peak tuple. DONT ADD ANY EXTRA FIELDS 
 
 
 
-# attempt to make an list of the next 42 hours of values
+# attempt to make an list of the next 24 hours of values
 prices = []
+print("Segments for next 24 hours:")
 for offset in range(0, 48):  ##24h = 48 segments
 	min_offset = 30 * offset
-	the_now = datetime.datetime.now()
+#	the_now = datetime.datetime.now()
 	now_plus_offset = the_now + datetime.timedelta(minutes=min_offset)
 	the_year = now_plus_offset.year
 	the_month = now_plus_offset.month
@@ -166,8 +179,7 @@ for offset in range(0, 48):  ##24h = 48 segments
 	else:
 		prices.append(row[5])
 
-
-
+	print("Segment ", str(offset), "price: ", prices[offset])
 
 
 font = ImageFont.truetype(FredokaOne, 60)
@@ -230,10 +242,10 @@ else:
 pixels_per_h = 2  # how many pixels 1p is worth
 pixels_per_w = 3  # how many pixels 1/2 hour is worth
 chart_base_loc = 104  # location of the bottom of the chart on screen in pixels
-number_of_vals_to_display = 48 # 36 half hours = 18 hours
+number_of_vals_to_display = 48 # 48 half hours = 24 hours
 
 # plot the graph
-lowest_price_next_24h = min(i for i in prices if i > 0)
+lowest_price_next_24h = min(i for i in prices) # changed to allow negative prices
 
 print("lowest price Position:", prices.index(lowest_price_next_24h))
 print("low Value:", lowest_price_next_24h)
@@ -267,12 +279,11 @@ print ("minterval:"+str(minterval))
 msg = "in:"+str(minterval)+"hrs"
 draw.text((right_column,75), msg, inky_display.BLACK, font)
 
-# and convert that to an actual time
-# note that this next time will not give you an exact half hour if you don't run this at an exact half hour eg cron
-# because it's literally just adding n * 30 mins!
-# could in future add some code to round to 30 mins increments but it works for now.
+# and convert that to an actual time rounding down to nearest half hour
 min_offset = prices.index(lowest_price_next_24h) * 30
-time_of_cheapest = the_now + datetime.timedelta(minutes=min_offset)
+print ("min_offset", str(min_offset))
+time_of_cheapest = floor_dt(datetime.datetime.now() + datetime.timedelta(minutes=min_offset),30)
+
 print("cheapest at " + str(time_of_cheapest))
 print("which is: "+ str(time_of_cheapest.time())[0:5])
 time_of_cheapest_formatted = "at " + (str(time_of_cheapest.time())[0:5])
@@ -280,5 +291,6 @@ font = ImageFont.truetype(FredokaOne, 15)
 draw.text((right_column,90), time_of_cheapest_formatted, inky_display.BLACK, font)
 
 # render the actual image onto the display
+img=img.rotate(180) # rotate image 180 degrees
 inky_display.set_image(img)
 inky_display.show()
