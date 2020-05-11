@@ -1,6 +1,5 @@
 # this is the one to run daily just after 4pm ish when the new prices come in
-api_key = 'xx-xxxx-xxxxxxxxxxxx' # Put your API key from the octopus agile dashboard here
-agile_tariff_code = 'E-1R-AGILE-18-02-21-A'  # This changes by area so choose the right one (displayed in your octopus dashboard). Codes end in A->P
+agile_tariff_code = 'E-1R-AGILE-18-02-21-F'  # This changes by area so choose the right one (displayed in your octopus dashboard). Codes end in A->P
 
 import sqlite3
 import datetime
@@ -31,7 +30,8 @@ def insertVariableIntoTable(year, month, day, hour, segment, price):
             print("The SQLite connection is closed. We are done here.")
 
 
-response = requests.get('https://api.octopus.energy/v1/products/AGILE-18-02-21/electricity-tariffs/'+agile_tariff_code+'/standard-unit-rates/', auth=(api_key,'null') )
+response = requests.get('https://api.octopus.energy/v1/products/AGILE-18-02-21/electricity-tariffs/'+agile_tariff_code+'/standard-unit-rates/')
+
 pricedata = response.json()
 print(pricedata['count'])
 print(pricedata['results'][0])
