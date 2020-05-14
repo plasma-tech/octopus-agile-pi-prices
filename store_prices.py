@@ -76,5 +76,5 @@ while (count < 100):
 		print("updated prices retrieved")
 		break
 	else:
-		print("prices not yet available, retrying in 5 mins")
-		time.sleep(300)
+		print("prices not yet available, retrying in 1 hour")
+		time.sleep(3600)
